@@ -1,7 +1,5 @@
 #[allow(unused_imports)]
 use std::env;
-use std::fmt::format;
-#[allow(unused_imports)]
 use std::fs;
 use std::io::stdout;
 use std::io::BufReader;
@@ -12,9 +10,6 @@ use anyhow::Context;
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
 use flate2::read::ZlibDecoder;
-use flate2::read::ZlibEncoder;
-use flate2::Compression;
-use std::fs::File;
 use std::io::prelude::*;
 
 #[derive(Parser, Debug)]
@@ -67,13 +62,13 @@ fn main() -> anyhow::Result<()> {
         } => {
             anyhow::ensure!(pretty_print, "Mode not supported!");
 
-            let mut f = std::fs::File::open(format!(
+            let f = std::fs::File::open(format!(
                 ".git/objects/{}/{}",
                 &object_hash[..2],
                 &object_hash[2..]
             ))
             .context("open in .git/objects")?;
-            let mut z = ZlibDecoder::new(f);
+            let z = ZlibDecoder::new(f);
             let mut z = BufReader::new(z);
 
             let mut buf = Vec::new();
@@ -107,8 +102,7 @@ fn main() -> anyhow::Result<()> {
 
             buf.clear();
             buf.resize(size, 0);
-            let slice_buf = z
-                .read_exact(&mut buf[..])
+            z.read_exact(&mut buf[..])
                 .context("read contents of .git/objects file")?;
 
             let n = z
