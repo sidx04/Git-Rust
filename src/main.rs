@@ -1,7 +1,6 @@
 #[allow(unused_imports)]
 use std::env;
 use std::fs;
-use std::io::stdout;
 use std::io::BufReader;
 
 use std::ffi::CStr;
@@ -95,29 +94,45 @@ fn main() -> anyhow::Result<()> {
                 _ => anyhow::bail!(format!("Cannot process for type: {}", known_type)),
             };
 
-            let size = size.parse::<usize>().context(format!(
+            let size = size.parse::<u64>().context(format!(
                 ".git/objects file header has invalid size!: {}",
                 size
             ))?;
 
-            buf.clear();
-            buf.resize(size, 0);
-            z.read_exact(&mut buf[..])
-                .context("read contents of .git/objects file")?;
+            // if decompressed file is too long, this won't throw an error
+            // but not vulnerable to a zipbomb either
 
-            let n = z
-                .read(&mut [0])
-                .context("validate EOF in .git/object file")?;
+            let mut z = z.take(size);
+
+            match known_type {
+                KnownType::Blob => {
+                    let mut stdout = std::io::stdout().lock();
+                    let n = std::io::copy(&mut z, &mut stdout)
+                        .context("Write .git/objects file into stdout")?;
+                    anyhow::ensure!(
+                        n == size,
+                        format!(".git/object expected size {}, found size {}", size, n)
+                    );
+                }
+            }
+
+            // buf.clear();
+            // buf.resize(size, 0);
+            // z.read_exact(&mut buf[..])
+            //     .context("read contents of .git/objects file")?;
+
+            // let n = z
+            //     .read(&mut [0])
+            //     .context("validate EOF in .git/object file")?;
 
             // assert_eq!(n, 0);
-            anyhow::ensure!(n == 0, format!(".git/object had {} trailing bytes", n));
 
-            let mut stdout = stdout().lock();
-            match known_type {
-                KnownType::Blob => stdout
-                    .write_all(&buf)
-                    .context("Write object contents to buf")?,
-            }
+            // let mut stdout = stdout().lock();
+            // match known_type {
+            //     KnownType::Blob => stdout
+            //         .write_all(&buf)
+            //         .context("Write object contents to buf")?,
+            // }
         }
     }
     Ok(())
