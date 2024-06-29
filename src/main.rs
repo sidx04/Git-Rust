@@ -1,6 +1,5 @@
 #[allow(unused_imports)]
 use std::env;
-use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -35,24 +34,11 @@ fn main() -> anyhow::Result<()> {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");
 
-    /*
-    Folder structure:
-     - .git/
-       - objects/
-       - refs/
-       - HEAD (should contain "ref: refs/heads/main\n" for a new repository)
-    */
-
     let args = Args::parse();
 
     match args.command {
-        Command::Init => {
-            fs::create_dir(".git").unwrap();
-            fs::create_dir(".git/objects").unwrap();
-            fs::create_dir(".git/refs").unwrap();
-            fs::write(".git/HEAD", "ref: refs/heads/main\n").unwrap();
-            println!("Initialized git directory")
-        }
+        Command::Init => commands::init::invoke().context("initialise `/.git` directory")?,
+
         Command::CatFile {
             pretty_print,
             object_hash,
