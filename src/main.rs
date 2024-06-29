@@ -6,6 +6,7 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 
 pub(crate) mod commands;
+pub(crate) mod objects;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -28,6 +29,9 @@ enum Command {
 
         file: PathBuf,
     },
+    LsTree {
+        name_only: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -46,6 +50,10 @@ fn main() -> anyhow::Result<()> {
 
         Command::HashObject { write, file } => {
             commands::hash_object::invoke(write, &file).context("implement hash-object")?;
+        }
+
+        Command::LsTree { name_only } => {
+            commands::ls_tree::invoke(name_only).context("implement `ls-tree`")?
         }
     }
     Ok(())
